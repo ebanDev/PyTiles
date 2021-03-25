@@ -1,6 +1,8 @@
 import pygame
 import random
 import time
+import serial
+import threading
 
 pygame.init()
 
@@ -16,7 +18,7 @@ grey = (100, 100, 100)
 
 gap = 2
 tile_width = (display_width - 10) / 4
-tile_height = display_height * 0.25 - gap  # tile_width * 1.5
+tile_height = display_height * 0.25 - gap
 grid = [gap,
         (tile_width + gap * 2),
         (tile_width * 2 + gap * 3),
@@ -26,6 +28,24 @@ gameDisplay = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption("Py Tiles")
 clock = pygame.time.Clock()
 
+ser = serial.Serial('COM5', 115200, timeout = 1)
+
+def microbitEvent():
+    SERIAL = pygame.USEREVENT + 1
+    while True:
+        serial_buffer = ''
+        serial_data = ser.readline().decode('utf-8')
+        while serial_data:
+            serial_buffer += serial_data
+            if '\r\n' in serial_buffer:
+                evt = pygame.event.Event(SERIAL, line=serial_buffer)
+                pygame.event.post(evt)
+                serial_buffer = ''
+                print(evt.line)
+            serial_data = ser.readline().decode('utf-8')
+
+eventThread = threading.Thread(target=microbitEvent)
+eventThread.start()
 
 class Tiles:
     posy = -tile_height
@@ -101,10 +121,10 @@ def game():
     tile2 = Tiles()
     tile3 = Tiles()
     tile4 = Tiles()
-    tile5 = Tiles()
-    tile_list = [tile1, tile2, tile3, tile4, tile5]
+    tile_list = [tile1, tile2, tile3, tile4]
     mult = 1
     accelerator = 1
+    SERIAL = pygame.USEREVENT + 1
 
     for tile in tile_list:
         tile.posx = random.choice(grid)
@@ -113,9 +133,7 @@ def game():
 
     tile_speed = 6
     score = 0
-
     while True:
-
         tileposy_list = []
 
         for tile in tile_list:
@@ -131,13 +149,15 @@ def game():
             if event.type == pygame.QUIT:
                 quitgame()
 
-            if event.type == pygame.KEYDOWN:
+            if event.type == SERIAL:
 
+                line = [int(s) for s in event.line.split() if s.isdigit()][0]
+                print(line)
                 if not tileposy_list:
                     pass
 
                 else:
-                    if event.key == pygame.K_h:
+                    if line == 1:
                         if tile1.posx == grid[0] and tile1.posy == tileposy_list[0]:
                             tile1.pressed = True
                             score += 1
@@ -154,14 +174,10 @@ def game():
                             tile4.pressed = True
                             score += 1
 
-                        elif tile5.posx == grid[0] and tile5.posy == tileposy_list[0]:
-                            tile5.pressed = True
-                            score += 1
-
                         else:
                             gameover()
 
-                    if event.key == pygame.K_j:
+                    if line == 2:
                         if tile1.posx == grid[1] and tile1.posy == tileposy_list[0]:
                             tile1.pressed = True
                             score += 1
@@ -178,14 +194,10 @@ def game():
                             tile4.pressed = True
                             score += 1
 
-                        elif tile5.posx == grid[1] and tile5.posy == tileposy_list[0]:
-                            tile5.pressed = True
-                            score += 1
-
                         else:
                             gameover()
 
-                    if event.key == pygame.K_k:
+                    if line == 3:
                         if tile1.posx == grid[2] and tile1.posy == tileposy_list[0]:
                             tile1.pressed = True
                             score += 1
@@ -202,14 +214,11 @@ def game():
                             tile4.pressed = True
                             score += 1
 
-                        elif tile5.posx == grid[2] and tile5.posy == tileposy_list[0]:
-                            tile5.pressed = True
-                            score += 1
-
                         else:
                             gameover()
 
-                    if event.key == pygame.K_l:
+
+                    if line == 4:
                         if tile1.posx == grid[3] and tile1.posy == tileposy_list[0]:
                             tile1.pressed = True
                             score += 1
@@ -224,10 +233,6 @@ def game():
 
                         elif tile4.posx == grid[3] and tile4.posy == tileposy_list[0]:
                             tile4.pressed = True
-                            score += 1
-
-                        elif tile5.posx == grid[3] and tile5.posy == tileposy_list[0]:
-                            tile5.pressed = True
                             score += 1
 
                         else:
@@ -256,10 +261,10 @@ def game():
                     elif score % 20 == 0:
                         tile_speed += accelerator
 
-        text((grid[0] + (tile_width / 2)), (display_height - 30), "H", 30, "resources/FreeSansBold.ttf", black)
-        text((grid[1] + (tile_width / 2)), (display_height - 30), "J", 30, "resources/FreeSansBold.ttf", black)
-        text((grid[2] + (tile_width / 2)), (display_height - 30), "K", 30, "resources/FreeSansBold.ttf", black)
-        text((grid[3] + (tile_width / 2)), (display_height - 30), "L", 30, "resources/FreeSansBold.ttf", black)
+        text((grid[0] + (tile_width / 2)), (display_height - 30), "1", 30, "resources/FreeSansBold.ttf", black)
+        text((grid[1] + (tile_width / 2)), (display_height - 30), "2", 30, "resources/FreeSansBold.ttf", black)
+        text((grid[2] + (tile_width / 2)), (display_height - 30), "3", 30, "resources/FreeSansBold.ttf", black)
+        text((grid[3] + (tile_width / 2)), (display_height - 30), "4", 30, "resources/FreeSansBold.ttf", black)
 
         pygame.display.update()
         clock.tick(60)
